@@ -11,6 +11,7 @@
 
 ### **Step 2: GitHub Repository Setup** 🚀 IN PROGRESS
 - [x] Create .gitignore file ✅
+- [x] Create MIT License file ✅
 - [ ] Initialize git repository locally
 - [ ] Create new GitHub repo: `beat-file-organizer`  
 - [ ] Add repository description and tags
