@@ -1,8 +1,15 @@
 # 🎵 Beat File Organizer
 
-> The ultimate file organizer for music producers - solve workflow chaos with audio-smart organization
+> **Born from the enemy's $5.53 insulting offer** - Professional file organization for the Artist Liberation War
 
 ![Beat File Organizer Dashboard](screenshots/dashboard.png)
+
+## 🔥 The Origin Story
+This tool was born from rage. After a lifetime of creating music, the streaming platforms offered **$5.53 total earnings**. An insulting joke that sparked a revolution. 
+
+Every tool that helps artists create, organize, and sell independently is a weapon against the extraction economy. This Beat File Organizer isn't just software - it's infrastructure for artist liberation.
+
+**"The enemy offered $5.53 and thought we'd be grateful. Instead, we built weapons of artist liberation."**
 
 ## The Problem Every Producer Knows
 - 1000+ beat files scattered across folders

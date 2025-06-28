@@ -3,1057 +3,313 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Beat File Organizer - Dashboard</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: #fff;
-            min-height: 100vh;
-        }
-
-        .header {
-            background: rgba(0,0,0,0.3);
-            padding: 1rem 2rem;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .header h1 {
-            font-size: 2rem;
-            font-weight: 300;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        .scan-section {
-            background: rgba(255,255,255,0.1);
-            padding: 2rem;
-            border-radius: 12px;
-            margin-bottom: 2rem;
-            backdrop-filter: blur(10px);
-        }
-
-        .input-group {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }
-
-        .path-input {
-            flex: 1;
-            padding: 0.75rem;
-            border: none;
-            border-radius: 6px;
-            background: rgba(255,255,255,0.9);
-            color: #333;
-            font-size: 1rem;
-        }
-
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 6px;
-            background: #ff6b6b;
-            color: white;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn:hover {
-            background: #ff5252;
-            transform: translateY(-2px);
-        }
-
-        .btn:disabled {
-            background: #666;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin: 2rem 0;
-        }
-
-        .stat-card {
-            background: rgba(255,255,255,0.1);
-            padding: 1.5rem;
-            border-radius: 8px;
-            text-align: center;
-        }
-
-        .stat-number {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #4ecdc4;
-        }
-
-        .stat-label {
-            font-size: 0.9rem;
-            opacity: 0.8;
-            margin-top: 0.5rem;
-        }
-
-        .files-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-            margin-top: 2rem;
-        }
-
-        .file-panel {
-            background: rgba(255,255,255,0.1);
-            border-radius: 12px;
-            padding: 1.5rem;
-            backdrop-filter: blur(10px);
-        }
-
-        .panel-header {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 1px solid rgba(255,255,255,0.2);
-        }
-
-        .file-list {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .file-item {
-            background: rgba(255,255,255,0.1);
-            margin: 0.5rem 0;
-            padding: 1rem;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border-left: 4px solid transparent;
-        }
-
-        /* Enhanced visual feedback */
-        .file-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-        }
-
-        .file-item.duplicate {
-            border-left-color: #ff6b6b;
-        }
-
-        .file-item.version {
-            border-left-color: #feca57;
-        }
-
-        .file-item.clean {
-            border-left-color: #48cab2;
-        }
-
-        .file-name {
-            font-weight: 500;
-            margin-bottom: 0.25rem;
-        }
-
-        .file-details {
-            font-size: 0.8rem;
-            opacity: 0.7;
-        }
-
-        .file-size {
-            font-size: 0.8rem;
-            opacity: 0.7;
-            margin-top: 0.2rem;
-        }
-
-        .comparison-panel {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(20, 20, 20, 0.95);
-            padding: 2rem;
-            border-radius: 12px;
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.2);
-            min-width: 600px;
-            display: none;
-            z-index: 1000;
-        }
-
-        .comparison-header {
-            background: rgba(0,0,0,0.3);
-            padding: 1rem;
-            margin: -2rem -2rem 1rem -2rem;
-            border-radius: 12px 12px 0 0;
-        }
-
-        .comparison-header h3 {
-            margin: 0;
-            color: #4ecdc4;
-        }
-
-        .audio-player {
-            background: rgba(255,255,255,0.1);
-            padding: 1rem;
-            border-radius: 8px;
-            margin: 1rem 0;
-            transition: all 0.3s ease;
-            border-left: 4px solid transparent;
-        }
-
-        .audio-player:hover {
-            background: rgba(255,255,255,0.15);
-        }
-
-        .audio-player.playing {
-            background: rgba(76, 205, 196, 0.2);
-            border-left-color: #4ecdc4;
-            box-shadow: 0 0 20px rgba(76, 205, 196, 0.3);
-        }
-
-        .player-controls {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-top: 0.5rem;
-        }
-
-        .play-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: #4ecdc4;
-            border: none;
-            color: white;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-        }
-
-        .play-btn:hover {
-            background: #44a08d;
-            transform: scale(1.1);
-        }
-
-        .play-btn.playing {
-            background: #ff6b6b;
-            animation: pulse 2s infinite;
-        }
-
-        .audio-info {
-            flex: 1;
-            font-size: 0.8rem;
-            opacity: 0.8;
-        }
-
-        .waveform-container {
-            flex: 1;
-            height: 40px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 4px;
-            margin: 0 1rem;
-            position: relative;
-            overflow: hidden;
-            cursor: pointer;
-        }
-
-        .waveform-container:hover {
-            background: rgba(255,255,255,0.2);
-        }
-
-        .waveform-canvas {
-            width: 100%;
-            height: 100%;
-            display: block;
-        }
-
-        .waveform-placeholder {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            opacity: 0.6;
-            font-size: 0.8rem;
-        }
-
-        .progress-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            height: 100%;
-            background: rgba(76, 205, 196, 0.3);
-            pointer-events: none;
-            transition: width 0.1s ease;
-        }
-
-        .waveform {
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0 1rem;
-        }
-
-        .time-display {
-            font-family: monospace;
-            font-size: 0.8rem;
-            min-width: 80px;
-            text-align: center;
-        }
-
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(76, 205, 196, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(76, 205, 196, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(76, 205, 196, 0); }
-        }
-
-        .progress-container {
-            background: rgba(255,255,255,0.1);
-            border-radius: 10px;
-            padding: 1rem;
-            margin: 1rem 0;
-            display: none;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 20px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 0.5rem 0;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #4ecdc4, #44a08d);
-            width: 0%;
-            transition: width 0.3s ease;
-            border-radius: 10px;
-        }
-
-        .progress-text {
-            text-align: center;
-            margin: 0.5rem 0;
-            font-size: 0.9rem;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 2rem;
-            opacity: 0.7;
-        }
-
-        .spinner {
-            border: 3px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top: 3px solid #4ecdc4;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
-        }
-
-        .progress-container {
-            background: rgba(255,255,255,0.2);
-            border-radius: 10px;
-            padding: 3px;
-            margin: 1rem auto;
-            max-width: 400px;
-        }
-
-        .progress-bar {
-            background: linear-gradient(90deg, #4ecdc4, #44a08d);
-            height: 20px;
-            border-radius: 8px;
-            width: 0%;
-            transition: width 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .progress-bar::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            animation: shimmer 2s infinite;
-        }
-
-        .progress-text {
-            margin-top: 0.5rem;
-            font-size: 0.9rem;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        @keyframes shimmer {
-            0% { left: -100%; }
-            100% { left: 100%; }
-        }
-
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 999;
-            display: none;
-        }
-
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(76, 205, 196, 0.9);
-            color: white;
-            padding: 1rem;
-            border-radius: 8px;
-            display: none;
-            z-index: 2000;
-            animation: slideIn 0.3s ease;
-            max-width: 300px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        }
-
-        .notification.error {
-            background: rgba(255, 107, 107, 0.9);
-        }
-
-        .notification.success {
-            background: rgba(67, 160, 71, 0.9);
-        }
-
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-    </style>
+    <title>Elemental Publishing - Beat File Organizer | Artist Liberation War</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <div class="header">
-        <h1>🎵 Beat File Organizer</h1>
-    </div>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="Elemental Publishing" class="logo">
+                <div class="brand-text">
+                    <h1 class="brand-title">Beat File Organizer</h1>
+                    <p class="brand-subtitle">"Something Different" - Professional Music Tools</p>
+                </div>
+            </div>
+            <div class="war-badge">
+                🔥 Artist Liberation War
+            </div>
+        </div>
+    </header>
 
+    <!-- Main Container -->
     <div class="container">
-        <div class="scan-section">
-            <h2>Scan Directory</h2>
+        <!-- Mission Statement -->
+        <div class="card fade-in">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-flag card-icon"></i>
+                    Mission: Destroy the Artist Extraction Economy
+                </h2>
+            </div>
+            <p style="color: rgba(245, 245, 245, 0.8); line-height: 1.8;">
+                <strong style="color: var(--ep-danger);">The enemy offered $5.53</strong> for a lifetime of streaming - an insulting joke that sparked this war.
+                This tool empowers music producers with professional file organization and audio analysis. 
+                Find duplicates, analyze quality metrics, and organize your beats like a pro. 
+                <strong style="color: var(--ep-accent);">Every tool that helps artists create independently weakens platform dependency.</strong>
+            </p>
+        </div>
+
+        <!-- Directory Scanner -->
+        <div class="card slide-in-right">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-folder-open card-icon"></i>
+                    Scan Your Beat Collection
+                </h2>
+            </div>
+            
             <div class="input-group">
-                <input type="text" class="path-input" id="scanPath" placeholder="Enter directory path to scan (e.g., C:\Users\username\Desktop)" value="C:\Users\storage\Desktop">
-                <button class="btn" id="scanBtn" onclick="scanDirectory()">🔍 Scan Files</button>
+                <input 
+                    type="text" 
+                    id="directoryPath" 
+                    class="input-field" 
+                    placeholder="C:\Users\YourName\Music\Beats (53 tracks, thousands of plays, international fans calling them 'masterpieces' = $5.53 total)"
+                    value=""
+                >
+                <button id="browseBtn" class="btn btn-secondary">
+                    <i class="fas fa-folder"></i>
+                    Browse
+                </button>
+                <button id="scanBtn" class="btn btn-primary">
+                    <i class="fas fa-search"></i>
+                    Scan Directory
+                </button>
+            </div>
+
+            <div id="scanProgress" class="hidden">
+                <div class="progress-container">
+                    <div class="progress-bar" style="width: 0%"></div>
+                </div>
+                <p class="loading">
+                    <span class="spinner"></span>
+                    Scanning your beats... Preparing for liberation!
+                </p>
+                <div style="text-align: center; margin-top: 0.5rem;">
+                    <small style="color: rgba(245, 245, 245, 0.6);">
+                        📂 Phase 1: Finding files → 🔍 Phase 2: Generating hashes → 🔄 Phase 3: Finding duplicates
+                    </small>
+                </div>
+                <div style="text-align: center; margin-top: 1rem;">
+                    <button id="cancelScanBtn" class="btn btn-secondary">
+                        <i class="fas fa-times"></i>
+                        Cancel Scan
+                    </button>
+                </div>
             </div>
         </div>
 
-        <div id="statsSection" style="display: none;">
-            <div class="progress-container" id="progressContainer">
-                <h3>Scanning Progress</h3>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill"></div>
-                </div>
-                <div class="progress-text" id="progressText">Initializing...</div>
+        <!-- Collection Overview -->
+        <div id="collectionOverview" class="card hidden">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-chart-bar card-icon"></i>
+                    Collection Analytics
+                </h2>
+                <button id="analyzeAllBtn" class="btn btn-primary">
+                    <i class="fas fa-microscope"></i>
+                    Deep Analysis
+                </button>
             </div>
 
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-number" id="totalFiles">0</div>
-                    <div class="stat-label">Total Audio Files</div>
+                    <div class="stat-value" id="totalFiles">0</div>
+                    <div class="stat-label">Audio Files</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number" id="duplicatesCount">0</div>
-                    <div class="stat-label">Duplicate Groups</div>
+                    <div class="stat-value" id="totalSize">0 MB</div>
+                    <div class="stat-label">Total Size</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number" id="versionsCount">0</div>
-                    <div class="stat-label">Version Families</div>
+                    <div class="stat-value" id="duplicateCount">0</div>
+                    <div class="stat-label">Duplicates Found</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number" id="cleanFiles">0</div>
-                    <div class="stat-label">Clean Files</div>
+                    <div class="stat-value" id="wastedSpace">0 MB</div>
+                    <div class="stat-label">Wasted Space</div>
                 </div>
             </div>
         </div>
 
-        <div class="files-section" id="filesSection" style="display: none;">
-            <div class="file-panel">
-                <div class="panel-header">🔄 Version Families</div>
-                <div class="file-list" id="versionsList"></div>
-            </div>
-            
-            <div class="file-panel">
-                <div class="panel-header">📋 Duplicates</div>
-                <div class="file-list" id="duplicatesList"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Loading overlay -->
-    <div class="loading" id="loadingSection" style="display: none;">
-        <div class="spinner"></div>
-        <p id="loadingText">Scanning and analyzing files...</p>
-        <div class="progress-container">
-            <div class="progress-bar" id="progressBar"></div>
-        </div>
-        <div class="progress-text" id="progressText">Preparing scan...</div>
-    </div>
-
-    <!-- Comparison overlay -->
-    <div class="overlay" id="overlay"></div>
-    <div class="comparison-panel" id="comparisonPanel">
-        <div class="comparison-header">
-            <h3>🎧 Compare Files</h3>
-        </div>
-        <div id="comparisonContent"></div>
-        <div style="text-align: center; margin-top: 1rem;">
-            <button class="btn" onclick="closeComparison()">Close</button>
-        </div>
-    </div>
-
-    <script>
-        let scanData = null;
-        let progressInterval = null;
-
-        async function scanDirectory() {
-            const path = document.getElementById('scanPath').value.trim();
-            if (!path) {
-                alert('Please enter a directory path');
-                return;
-            }
-
-            // Show progress container and hide old results
-            document.getElementById('progressContainer').style.display = 'block';
-            document.getElementById('statsSection').style.display = 'block';
-            document.getElementById('filesSection').style.display = 'none';
-            document.getElementById('scanBtn').disabled = true;
-
-            try {
-                const response = await fetch('/api/scan', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ path: path })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    // Start polling for progress
-                    startProgressPolling();
-                } else {
-                    alert('Error: ' + result.error);
-                    resetUI();
-                }
-            } catch (error) {
-                alert('Failed to scan directory: ' + error.message);
-                resetUI();
-            }
-        }
-
-        function startProgressPolling() {
-            progressInterval = setInterval(async () => {
-                try {
-                    const response = await fetch('/api/progress');
-                    const progress = await response.json();
-                    
-                    updateProgressBar(progress);
-                    
-                    if (progress.status === 'complete') {
-                        clearInterval(progressInterval);
-                        await loadResults();
-                    } else if (progress.status === 'error') {
-                        clearInterval(progressInterval);
-                        alert('Scan failed: ' + progress.message);
-                        resetUI();
-                    }
-                } catch (error) {
-                    console.error('Progress polling error:', error);
-                }
-            }, 200); // Poll every 200ms for responsive updates
-        }
-
-        function updateProgressBar(progress) {
-            const percentage = progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
-            
-            document.getElementById('progressFill').style.width = percentage + '%';
-            document.getElementById('progressText').textContent = progress.message || 'Processing...';
-        }
-
-        async function loadResults() {
-            try {
-                const response = await fetch('/api/results');
-                const result = await response.json();
-                
-                if (result.success) {
-                    scanData = result.data;
-                    updateUI(result);
-                    document.getElementById('progressContainer').style.display = 'none';
-                }
-            } catch (error) {
-                console.error('Failed to load results:', error);
-            }
-        }
-
-        function resetUI() {
-            document.getElementById('scanBtn').disabled = false;
-            document.getElementById('progressContainer').style.display = 'none';
-            document.getElementById('statsSection').style.display = 'none';
-            document.getElementById('filesSection').style.display = 'none';
-            if (progressInterval) {
-                clearInterval(progressInterval);
-                progressInterval = null;
-            }
-        }
-
-        function updateProgress(percent, text) {
-            document.getElementById('progressBar').style.width = percent + '%';
-            document.getElementById('progressText').textContent = text;
-        }
-
-        function sleep(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
-        }
-
-        function updateUI(result) {
-            // Update stats
-            document.getElementById('totalFiles').textContent = result.total_files;
-            document.getElementById('duplicatesCount').textContent = result.duplicates_count;
-            document.getElementById('versionsCount').textContent = result.version_families_count;
-            
-            const cleanFiles = result.total_files - 
-                Object.values(result.data.duplicates).flat().length - 
-                Object.values(result.data.version_families).flat().length;
-            document.getElementById('cleanFiles').textContent = cleanFiles;
-
-            // Show sections
-            document.getElementById('statsSection').style.display = 'block';
-            document.getElementById('filesSection').style.display = 'grid';
-
-            // Populate file lists
-            populateVersionsList(result.data.version_families);
-            populateDuplicatesList(result.data.duplicates);
-        }
-
-        function populateVersionsList(families) {
-            const container = document.getElementById('versionsList');
-            container.innerHTML = '';
-
-            Object.entries(families).forEach(([familyName, files]) => {
-                const familyDiv = document.createElement('div');
-                familyDiv.innerHTML = `
-                    <div class="file-item version" onclick="compareFiles(${JSON.stringify(files).replace(/"/g, '&quot;')})">
-                        <div class="file-name">📁 ${familyName}</div>
-                        <div class="file-details">${files.length} versions • Click to compare</div>
-                    </div>
-                `;
-                container.appendChild(familyDiv);
-            });
-        }
-
-        function populateDuplicatesList(duplicates) {
-            const container = document.getElementById('duplicatesList');
-            container.innerHTML = '';
-
-            Object.entries(duplicates).forEach(([groupId, files]) => {
-                const groupDiv = document.createElement('div');
-                groupDiv.innerHTML = `
-                    <div class="file-item duplicate" onclick="compareFiles(${JSON.stringify(files).replace(/"/g, '&quot;')})">
-                        <div class="file-name">🔄 ${groupId}</div>
-                        <div class="file-details">${files.length} identical files • Click to compare</div>
-                    </div>
-                `;
-                container.appendChild(groupDiv);
-            });
-        }
-
-        function compareFiles(files) {
-            const panel = document.getElementById('comparisonPanel');
-            const overlay = document.getElementById('overlay');
-            const content = document.getElementById('comparisonContent');
-
-            // Add header
-            const headerHtml = `
-                <div class="comparison-header">
-                    <h3>🎵 Comparing ${files.length} Files</h3>
-                    <p>Click on waveforms to seek, use play buttons to preview</p>
+        <!-- Quality Analysis -->
+        <div id="qualityAnalysis" class="card hidden">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-star card-icon"></i>
+                    Professional Quality Analysis
+                </h2>
+                <div>
+                    <button id="exportReportBtn" class="btn btn-secondary">
+                        <i class="fas fa-download"></i>
+                        Export Report
+                    </button>
                 </div>
-            `;
+            </div>
 
-            content.innerHTML = headerHtml + files.map((filepath, index) => {
-                const filename = filepath.split('\\').pop() || filepath.split('/').pop();
-                const audioId = `audio_${index}_${Date.now()}`;
-                const playerId = `player_${index}_${Date.now()}`;
-                
-                return `
-                    <div class="audio-player" id="${playerId}">
-                        <div class="file-name">🎵 ${filename}</div>
-                        <div class="player-controls">
-                            <button class="play-btn" onclick="playAudio('${audioId}', '${playerId}')" id="btn_${audioId}">▶️</button>
-                            
-                            <div class="waveform-container" onclick="seekAudio('${audioId}', event)">
-                                <canvas class="waveform-canvas" id="canvas_${audioId}" width="400" height="40"></canvas>
-                                <div class="waveform-placeholder" id="placeholder_${audioId}">~ Loading Waveform ~</div>
-                                <div class="progress-overlay" id="progress_${audioId}"></div>
-                            </div>
-                            
-                            <div class="time-display" id="time_${audioId}">0:00 / 0:00</div>
-                            
-                            <audio id="${audioId}" preload="metadata" 
-                                   ontimeupdate="updateProgress('${audioId}')"
-                                   onloadedmetadata="updateDuration('${audioId}'); generateWaveform('${audioId}')"
-                                   onended="resetPlayer('${audioId}', '${playerId}')">
-                                <source src="/api/audio/${encodeURIComponent(filepath)}" type="audio/mpeg">
-                                <source src="/api/audio/${encodeURIComponent(filepath)}" type="audio/wav">
-                                <source src="/api/audio/${encodeURIComponent(filepath)}" type="audio/flac">
-                                Your browser does not support the audio element.
-                            </audio>
-                        </div>
-                        <div class="audio-info">
-                            📁 ${filepath}<br>
-                            🔍 Click play to preview this version
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value streaming-ready" id="streamingReady">0</div>
+                    <div class="stat-label">Streaming Ready</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value clipped" id="clippedFiles">0</div>
+                    <div class="stat-label">Clipped (URGENT)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value loud" id="loudFiles">0</div>
+                    <div class="stat-label">Too Loud</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value quiet" id="quietFiles">0</div>
+                    <div class="stat-label">Need Mastering</div>
+                </div>
+            </div>
+
+            <div id="qualityRecommendations" class="mt-2">
+                <!-- Dynamic recommendations will be inserted here -->
+            </div>
+        </div>
+
+        <!-- File Browser -->
+        <div id="fileBrowser" class="card hidden">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-music card-icon"></i>
+                    Your Beats Collection
+                </h2>
+                <div class="flex items-center gap-1">
+                    <button id="sortByName" class="btn btn-secondary">
+                        <i class="fas fa-sort-alpha-down"></i>
+                        Name
+                    </button>
+                    <button id="sortBySize" class="btn btn-secondary">
+                        <i class="fas fa-sort-numeric-down"></i>
+                        Size
+                    </button>
+                    <button id="sortByQuality" class="btn btn-secondary">
+                        <i class="fas fa-star"></i>
+                        Quality
+                    </button>
+                </div>
+            </div>
+
+            <div class="file-list" id="fileList">
+                <!-- Dynamic file list will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Duplicate Manager -->
+        <div id="duplicateManager" class="card hidden">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-copy card-icon"></i>
+                    Duplicate File Manager
+                </h2>
+                <button id="autoResolveDuplicates" class="btn btn-warning">
+                    <i class="fas fa-magic"></i>
+                    Smart Cleanup
+                </button>
+            </div>
+
+            <div id="duplicateGroups">
+                <!-- Dynamic duplicate groups will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Audio Analyzer -->
+        <div id="audioAnalyzer" class="card hidden">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-waveform-lines card-icon"></i>
+                    Professional Audio Analysis
+                </h2>
+                <button id="closeAnalyzer" class="btn btn-secondary">
+                    <i class="fas fa-times"></i>
+                    Close
+                </button>
+            </div>
+
+            <div id="analyzerContent">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 id="analyzingFileName">No file selected</h3>
+                    <div id="analyzerQualityBadge"></div>
+                </div>
+
+                <div class="waveform-container">
+                    <div class="waveform" id="waveformDisplay">
+                        <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: rgba(245, 245, 245, 0.5);">
+                            <i class="fas fa-waveform-lines" style="font-size: 2rem; margin-right: 1rem;"></i>
+                            Click "Analyze File" to see waveform
                         </div>
                     </div>
-                `;
-            }).join('');
+                </div>
 
-            overlay.style.display = 'block';
-            panel.style.display = 'block';
-            
-            // Generate waveforms after a short delay to ensure elements are rendered
-            setTimeout(() => {
-                // Find all audio elements in the comparison panel and generate waveforms
-                const audioElements = content.querySelectorAll('audio');
-                audioElements.forEach((audio, index) => {
-                    generateWaveform(audio.id);
-                });
-                
-                // Show notification about waveform loading
-                showNotification('🎵 Loading waveforms...', 'info', 2000);
-            }, 200);
-        }
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="lufsValue">--</div>
+                        <div class="stat-label">LUFS Loudness</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="truePeakValue">--</div>
+                        <div class="stat-label">True Peak</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="dynamicRangeValue">--</div>
+                        <div class="stat-label">Dynamic Range</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="qualityScoreValue">--</div>
+                        <div class="stat-label">Quality Score</div>
+                    </div>
+                </div>
 
-        function generateWaveform(audioId) {
-            const audio = document.getElementById(audioId);
-            const canvas = document.getElementById(`canvas_${audioId}`);
-            const placeholder = document.getElementById(`placeholder_${audioId}`);
-            
-            if (!audio || !canvas) return;
-            
-            const ctx = canvas.getContext('2d');
-            const width = canvas.width;
-            const height = canvas.height;
-            
-            // Show loading state
-            if (placeholder) {
-                placeholder.textContent = 'Loading waveform...';
-                placeholder.style.display = 'block';
-            }
-            
-            // Get the audio file path from the audio source
-            const audioSrc = audio.querySelector('source').src;
-            // Extract just the file path part, handling both relative and absolute URLs
-            let encodedPath = audioSrc;
-            // Remove the base URL if it's an absolute URL
-            if (encodedPath.includes('localhost:5000')) {
-                encodedPath = encodedPath.split('localhost:5000')[1];
-            }
-            // Remove the /api/audio/ prefix
-            encodedPath = encodedPath.replace('/api/audio/', '');
-            
-            console.log('🔍 Audio src:', audioSrc);
-            console.log('🔍 Extracted path:', encodedPath);
-            
-            // Fetch real waveform data
-            fetch(`/api/waveform/${encodedPath}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.waveform) {
-                        drawRealWaveform(ctx, width, height, data.waveform, data.mock);
-                        if (placeholder) {
-                            placeholder.style.display = 'none';
-                        }
-                        
-                        // Show a subtle indicator if it's a mock waveform
-                        if (data.mock && placeholder) {
-                            placeholder.textContent = '~ Stylized Waveform ~';
-                            placeholder.style.display = 'block';
-                            placeholder.style.opacity = '0.3';
-                        }
-                    } else {
-                        // Show error - no fallback waveforms!
-                        if (placeholder) {
-                            placeholder.textContent = `⚠️ Real waveforms not available: ${data.error || 'Unknown error'}`;
-                            placeholder.style.display = 'block';
-                            placeholder.style.opacity = '0.8';
-                            placeholder.style.color = '#ff6b6b';
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.warn('Failed to load waveform:', error);
-                    // Show error instead of fallback
-                    if (placeholder) {
-                        placeholder.textContent = '⚠️ Waveform loading failed';
-                        placeholder.style.display = 'block';
-                        placeholder.style.opacity = '0.8';
-                        placeholder.style.color = '#ff6b6b';
-                    }
-                });
-        }
-        
-        function drawRealWaveform(ctx, width, height, waveformData, isMock = false) {
-            ctx.clearRect(0, 0, width, height);
-            
-            if (!waveformData || waveformData.length === 0) {
-                drawStaticWaveform(ctx, width, height);
-                return;
-            }
-            
-            // Set colors based on whether it's real or mock data
-            if (isMock) {
-                ctx.fillStyle = 'rgba(255, 193, 7, 0.6)';  // Amber for mock
-                ctx.strokeStyle = 'rgba(255, 193, 7, 0.8)';
-            } else {
-                ctx.fillStyle = 'rgba(76, 205, 196, 0.7)';  // Teal for real
-                ctx.strokeStyle = 'rgba(76, 205, 196, 0.9)';
-            }
-            
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            
-            const stepX = width / waveformData.length;
-            const centerY = height / 2;
-            
-            // Draw the waveform
-            for (let i = 0; i < waveformData.length; i++) {
-                const x = i * stepX;
-                const y = centerY + (waveformData[i] * centerY * 0.8);
-                
-                if (i === 0) {
-                    ctx.moveTo(x, y);
-                } else {
-                    ctx.lineTo(x, y);
-                }
-            }
-            
-            // Create a filled waveform by mirroring
-            for (let i = waveformData.length - 1; i >= 0; i--) {
-                const x = i * stepX;
-                const y = centerY - (waveformData[i] * centerY * 0.8);
-                ctx.lineTo(x, y);
-            }
-            
-            ctx.closePath();
-            ctx.fill();
-            
-            // Add a stroke line through the center
-            ctx.beginPath();
-            for (let i = 0; i < waveformData.length; i++) {
-                const x = i * stepX;
-                const y = centerY + (waveformData[i] * centerY * 0.8);
-                
-                if (i === 0) {
-                    ctx.moveTo(x, y);
-                } else {
-                    ctx.lineTo(x, y);
-                }
-            }
-            ctx.stroke();
-        }
-        
-        function drawStaticWaveform(ctx, width, height) {
-            ctx.clearRect(0, 0, width, height);
-            ctx.fillStyle = 'rgba(76, 205, 196, 0.6)';
-            ctx.strokeStyle = 'rgba(76, 205, 196, 0.8)';
-            ctx.lineWidth = 1;
-            
-            // Draw waveform-like visualization
-            const barWidth = 2;
-            const barSpacing = 1;
-            const numBars = Math.floor(width / (barWidth + barSpacing));
-            
-            for (let i = 0; i < numBars; i++) {
-                const x = i * (barWidth + barSpacing);
-                // Create pseudo-random heights that look like a waveform
-                const normalizedHeight = (Math.sin(i * 0.1) * 0.3 + Math.sin(i * 0.05) * 0.4 + Math.random() * 0.3);
-                const barHeight = Math.abs(normalizedHeight) * height * 0.8;
-                const y = (height - barHeight) / 2;
-                
-                ctx.fillRect(x, y, barWidth, barHeight);
-            }
-        }
-        
-        function seekAudio(audioId, event) {
-            const audio = document.getElementById(audioId);
-            const waveformContainer = event.currentTarget;
-            
-            if (!audio || isNaN(audio.duration)) {
-                showNotification('⚠️ Audio not loaded yet', 'error', 2000);
-                return;
-            }
-            
-            const rect = waveformContainer.getBoundingClientRect();
-            const clickX = event.clientX - rect.left;
-            const percentage = clickX / rect.width;
-            const newTime = percentage * audio.duration;
-            
-            audio.currentTime = newTime;
-            
-            const minutes = Math.floor(newTime / 60);
-            const seconds = Math.floor(newTime % 60);
-            showNotification(`⏭️ Seeking to ${minutes}:${seconds.toString().padStart(2, '0')}`, 'info', 1500);
-        }
+                <div id="analysisRecommendations" class="mt-2">
+                    <!-- Dynamic recommendations will be inserted here -->
+                </div>
+            </div>
+        </div>
 
-        function playAudio(audioId, playerId) {
-            const audio = document.getElementById(audioId);
-            const button = document.getElementById(`btn_${audioId}`);
-            const player = document.getElementById(playerId);
+        <!-- War Progress -->
+        <div class="card fade-in">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-chart-line card-icon"></i>
+                    Artist Liberation Progress
+                </h2>
+            </div>
             
-            if (!audio) {
-                console.error('Audio element not found:', audioId);
-                return;
-            }
-            
-            // Pause all other audio and reset their visual states
-            document.querySelectorAll('audio').forEach(a => {
-                if (a.id !== audioId && !a.paused) {
-                    a.pause();
-                    // Reset other players
-                    const otherButton = document.getElementById(`btn_${a.id}`);
-                    const otherPlayer = document.querySelector(`#${a.id}`).closest('.audio-player');
-                    if (otherButton) {
-                        otherButton.textContent = '▶️';
-                        otherButton.classList.remove('playing');
-                    }
-                    if (otherPlayer) {
-                        otherPlayer.classList.remove('playing');
-                    }
-                }
-            });
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" style="color: var(--ep-danger);">$5.53</div>
+                    <div class="stat-label">The Enemy's Insulting Offer</div>
+                    <div class="stat-sublabel">(Lifetime streaming earnings)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" style="color: var(--ep-gold);">$25</div>
+                    <div class="stat-label">Target: One Direct Beat Sale</div>
+                    <div class="stat-sublabel">(4.5x more than lifetime streaming earnings)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">4.5x</div>
+                    <div class="stat-label">Liberation Multiplier</div>
+                    <div class="stat-sublabel">(Direct vs. platform extraction)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" style="color: var(--ep-success);">100%</div>
+                    <div class="stat-label">Platform Independence</div>
+                    <div class="stat-sublabel">(The ultimate goal)</div>
+                </div>
+            </div>
 
-            if (audio.paused) {
-                audio.play().then(() => {
-                    button.textContent = '⏸️';
-                    button.classList.add('playing');
-                    player.classList.add('playing');
-                    showNotification(`🎵 Playing: ${audio.closest('.audio-player').querySelector('.file-name').textContent.replace('🎵 ', '')}`, 'info', 2000);
-                }).catch(error => {
-                    console.error('Audio play failed:', error);
-                    showNotification('❌ Failed to play audio. The file might be corrupted or inaccessible.', 'error', 4000);
-                });
-            } else {
-                audio.pause();
-                button.textContent = '▶️';
-                button.classList.remove('playing');
-                player.classList.remove('playing');
-                showNotification('⏸️ Audio paused', 'info', 1000);
-            }
-        }
+            <p style="color: rgba(245, 245, 245, 0.8); text-align: center; font-style: italic; margin-top: 1rem;">
+                "The enemy offered $5.53 and thought we'd be grateful. Instead, we built weapons of artist liberation."
+            </p>
+        </div>
+    </div>
 
-        function updateProgress(audioId) {
-            const audio = document.getElementById(audioId);
-            const progressBar = document.getElementById(`progress_${audioId}`);
-            const timeDisplay = document.getElementById(`time_${audioId}`);
-            
-            if (audio && progressBar && timeDisplay) {
-                const progress = (audio.currentTime / audio.duration) * 100;
-                progressBar.style.width = progress + '%';
-                
-                const currentMin = Math.floor(audio.currentTime / 60);
-                const currentSec = Math.floor(audio.currentTime % 60);
-                const durationMin = Math.floor(audio.duration / 60);
-                const durationSec = Math.floor(audio.duration % 60);
-                
-                timeDisplay.textContent = `${currentMin}:${currentSec.toString().padStart(2, '0')} / ${durationMin}:${durationSec.toString().padStart(2, '0')}`;
-            }
-        }
-
-        function updateDuration(audioId) {
-            const audio = document.getElementById(audioId);
-            const timeDisplay = document.getElementById(`time_${audioId}`);
-            
-            if (audio && timeDisplay && !isNaN(audio.duration)) {
-                const durationMin = Math.floor(audio.duration / 60);
-                const durationSec = Math.floor(audio.duration % 60);
-                timeDisplay.textContent = `0:00 / ${durationMin}:${durationSec.toString().padStart(2, '0')}`;
-            }
-        }
-
-        function resetPlayer(audioId, playerId) {
-            const button = document.getElementById(`btn_${audioId}`);
-            const player = document.getElementById(playerId);
-            const progressBar = document.getElementById(`progress_${audioId}`);
-            
-            if (button) {
-                button.textContent = '▶️';
-                button.classList.remove('playing');
-            }
-            if (player) {
-                player.classList.remove('playing');
-            }
-            if (progressBar) {
-                progressBar.style.width = '0%';
-            }
-            
-            // Reset time display
-            updateDuration(audioId);
-        }
-
-        function closeComparison() {
-            document.getElementById('overlay').style.display = 'none';
-            document.getElementById('comparisonPanel').style.display = 'none';
-            
-            // Pause all audio
-            document.querySelectorAll('audio').forEach(a => a.pause());
-        }
-
-        // Close comparison when clicking overlay
-        document.getElementById('overlay').addEventListener('click', closeComparison);
-        
-        // Notification system
-        function showNotification(message, type = 'info', duration = 3000) {
-            const notification = document.getElementById('notification') || createNotificationElement();
-            notification.textContent = message;
-            notification.className = `notification ${type}`;
-            notification.style.display = 'block';
-            
-            setTimeout(() => {
-                notification.style.display = 'none';
-            }, duration);
-        }
-        
-        function createNotificationElement() {
-            const notification = document.createElement('div');
-            notification.id = 'notification';
-            notification.className = 'notification';
-            document.body.appendChild(notification);
-            return notification;
-        }
-    </script>
-    
-    <!-- Notification element -->
-    <div id="notification" class="notification"></div>
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
 </body>
 </html>

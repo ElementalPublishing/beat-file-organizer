@@ -12,8 +12,9 @@ FFmpeg is incredibly powerful for audio analysis. Here's a structured plan to le
 **Goal**: Replace basic file hash comparison with actual audio content analysis
 
 ```python
-class AudioFingerprinter:
-    def generate_audio_fingerprint(self, filepath):
+# Integrate into existing AudioAnalyzer class
+class AudioAnalyzer:
+    def _generate_audio_fingerprint(self, filepath):
         """Generate perceptual hash of audio content"""
         # Use FFmpeg to extract audio features
         cmd = [
@@ -26,9 +27,11 @@ class AudioFingerprinter:
         # Process audio data to create perceptual hash
         return self._create_perceptual_hash(audio_data)
     
-    def compare_fingerprints(self, fp1, fp2):
+    def compare_audio_fingerprints(self, fp1, fp2):
         """Compare audio fingerprints for similarity"""
         # Return similarity score (0-100%)
+        # 100% = identical waveforms (safe to delete)
+        # 80-99% = similar/related tracks (group but don't auto-delete)
         pass
 ```
 
@@ -36,13 +39,16 @@ class AudioFingerprinter:
 - Detect true duplicates even across different formats (MP3 vs WAV)
 - Find duplicates with different bitrates/quality
 - Identify re-encoded versions
+- **Philosophy**: Only 100% waveform matches are considered safe duplicates
+- Similar tracks (80-99% match) are grouped but never auto-deleted
 
 ### **1.2 Basic Metadata Extraction**
 **Goal**: Extract comprehensive audio metadata using FFmpeg
 
 ```python
-def extract_audio_metadata(self, filepath):
-    """Extract detailed audio metadata"""
+# Enhance existing AudioAnalyzer class
+def extract_comprehensive_metadata(self, filepath):
+    """Extract detailed audio metadata using FFprobe"""
     cmd = ['ffprobe', '-v', 'quiet', '-print_format', 'json', '-show_format', '-show_streams', str(filepath)]
     result = subprocess.run(cmd, capture_output=True, text=True)
     
@@ -60,13 +66,17 @@ def extract_audio_metadata(self, filepath):
 **Goal**: Basic audio quality metrics
 
 ```python
-def analyze_audio_quality(self, filepath):
-    """Analyze basic audio quality metrics"""
+# Enhance existing AudioAnalyzer class methods
+def analyze_extended_quality(self, filepath):
+    """Analyze comprehensive audio quality metrics"""
     return {
         'peak_level': self._get_peak_level(filepath),
         'rms_level': self._get_rms_level(filepath),
         'dynamic_range': self._calculate_dynamic_range(filepath),
-        'clipping_detected': self._detect_clipping(filepath)
+        'clipping_detected': self._detect_clipping(filepath),
+        'lufs_integrated': self.lufs_integrated,  # Already exists
+        'lufs_momentary': self.lufs_momentary,    # Already exists
+        'true_peak': self.true_peak              # Already exists
     }
 ```
 
@@ -78,6 +88,7 @@ def analyze_audio_quality(self, filepath):
 **Goal**: Automatic tempo detection for DJ/producer workflows
 
 ```python
+# Add to AudioAnalyzer class
 def detect_bpm(self, filepath):
     """Detect BPM using FFmpeg and analysis"""
     # Method 1: FFmpeg beat detection filter
@@ -100,6 +111,7 @@ def detect_bpm(self, filepath):
 **Goal**: Musical key identification for harmonic mixing
 
 ```python
+# Add to AudioAnalyzer class
 def detect_musical_key(self, filepath):
     """Detect musical key using chromagram analysis"""
     # Extract chromagram using FFmpeg
@@ -118,7 +130,8 @@ def detect_musical_key(self, filepath):
 **Goal**: LUFS metering for streaming platform compliance
 
 ```python
-def analyze_loudness(self, filepath):
+# Enhance existing LUFS analysis in AudioAnalyzer
+def analyze_streaming_compliance(self, filepath):
     """Analyze loudness compliance for streaming platforms"""
     # Use FFmpeg's loudnorm filter for analysis
     cmd = [
@@ -127,13 +140,14 @@ def analyze_loudness(self, filepath):
         '-f', 'null', '-'
     ]
     
+    # Build on existing LUFS metrics
     return {
-        'integrated_loudness': lufs_data['input_i'],
+        'integrated_loudness': self.lufs_integrated,
         'loudness_range': lufs_data['input_lra'],
-        'true_peak': lufs_data['input_tp'],
-        'spotify_ready': lufs_data['input_i'] >= -16.0,
-        'apple_music_ready': lufs_data['input_i'] >= -16.0,
-        'youtube_ready': lufs_data['input_i'] >= -13.0
+        'true_peak': self.true_peak,
+        'spotify_ready': self.lufs_integrated >= -16.0,
+        'apple_music_ready': self.lufs_integrated >= -16.0,
+        'youtube_ready': self.lufs_integrated >= -13.0
     }
 ```
 
@@ -145,6 +159,7 @@ def analyze_loudness(self, filepath):
 **Goal**: Visual EQ analysis and frequency issue detection
 
 ```python
+# Add to AudioAnalyzer class
 def analyze_frequency_spectrum(self, filepath):
     """Generate frequency spectrum analysis"""
     # Extract frequency data using FFmpeg
@@ -166,14 +181,15 @@ def analyze_frequency_spectrum(self, filepath):
 **Goal**: Identify where samples are used across tracks
 
 ```python
+# Add to AudioAnalyzer class
 def find_sample_matches(self, filepath, sample_library):
     """Find samples used in this track"""
-    track_fingerprint = self.generate_detailed_fingerprint(filepath)
+    track_fingerprint = self._generate_audio_fingerprint(filepath)
     
     matches = []
     for sample_path in sample_library:
-        sample_fingerprint = self.generate_detailed_fingerprint(sample_path)
-        similarity = self._compare_detailed_fingerprints(track_fingerprint, sample_fingerprint)
+        sample_fingerprint = self._generate_audio_fingerprint(sample_path)
+        similarity = self.compare_audio_fingerprints(track_fingerprint, sample_fingerprint)
         
         if similarity > 0.8:  # 80% match threshold
             matches.append({
@@ -189,6 +205,7 @@ def find_sample_matches(self, filepath, sample_library):
 **Goal**: Classify tracks by intensity for playlist building
 
 ```python
+# Add to AudioAnalyzer class
 def analyze_energy_level(self, filepath):
     """Analyze track energy and intensity"""
     # Analyze multiple aspects of energy
@@ -212,10 +229,12 @@ def analyze_energy_level(self, filepath):
 
 ### **FFmpeg Command Architecture**
 ```python
-class FFmpegAnalyzer:
+# Integrate into existing AudioAnalyzer class
+class AudioAnalyzer:
     def __init__(self):
         self.ffmpeg_path = self._find_ffmpeg()
         self.cache_dir = Path('audio_analysis_cache')
+        # ...existing code...
         
     def run_analysis_pipeline(self, filepath, analysis_types):
         """Run multiple FFmpeg analyses efficiently"""
@@ -243,6 +262,7 @@ class FFmpegAnalyzer:
 
 ### **Error Handling & Fallbacks**
 ```python
+# Add to AudioAnalyzer class
 def safe_ffmpeg_analysis(self, filepath, analysis_func):
     """Safely run FFmpeg analysis with fallbacks"""
     try:

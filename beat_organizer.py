@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# type: ignore
 """
 Beat File Organizer - The Producer's File Management Solution
 
@@ -13,14 +14,24 @@ Usage:
 """
 
 import os
+import re
 import hashlib
 import argparse
 import sys
+import threading
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 from dataclasses import dataclass
 from collections import defaultdict
 from datetime import datetime
+
+# Import our audio metrics module
+try:
+    from audio_metrics import AudioAnalyzer, MetricsDatabase, AudioMetrics, classify_track_by_metrics, analyze_track_issues
+    AUDIO_METRICS_AVAILABLE = True
+except ImportError:
+    AUDIO_METRICS_AVAILABLE = False
+    print("⚠️ Audio metrics module not available - basic analysis only")
 
 @dataclass
 class AudioFile:
@@ -35,23 +46,25 @@ class AudioFile:
     estimated_duration: Optional[float] = None
 
 class BeatOrganizer:
-    """Main Beat File Organizer class"""
+    """Main Beat File Organizer class with audio metrics integration"""
     
     SUPPORTED_FORMATS = {'.wav', '.mp3', '.flac', '.aif', '.aiff', '.m4a', '.ogg'}
     
-    def __init__(self):
+    def __init__(self, enable_metrics: bool = True):
         """Initialize the organizer"""
-        self.has_fast_hash = self._check_fast_hash()
+        self.enable_metrics = enable_metrics and AUDIO_METRICS_AVAILABLE
+        
+        if self.enable_metrics:
+            self.audio_analyzer = AudioAnalyzer()
+            self.metrics_db = MetricsDatabase()
+            print("✅ Audio metrics analysis enabled")
+        else:
+            self.audio_analyzer = None
+            self.metrics_db = None
+            if enable_metrics:
+                print("⚠️ Audio metrics requested but not available")
     
-    def _check_fast_hash(self) -> bool:
-        """Check if compiled Cython hash module is available"""
-        try:
-            import fast_hash
-            return True
-        except ImportError:
-            return False
-    
-    def scan_directory(self, path: Path, recursive: bool = True, skip_hashing: bool = False) -> List[AudioFile]:
+    def scan_directory(self, path: Path, recursive: bool = True) -> List[AudioFile]:
         """Scan directory for audio files"""
         print(f"Scanning {path}{'...' if recursive else ' (non-recursive)...'}")
         
@@ -62,7 +75,7 @@ class BeatOrganizer:
             # Pre-filter by extension for speed
             for filepath in path.glob(pattern):
                 if filepath.is_file() and filepath.suffix.lower() in self.SUPPORTED_FORMATS:
-                    audio_file = self._analyze_file(filepath, skip_hashing)
+                    audio_file = self._analyze_file(filepath)
                     if audio_file:
                         audio_files.append(audio_file)
                         if len(audio_files) % 100 == 0:
@@ -73,7 +86,7 @@ class BeatOrganizer:
         print(f"Scan complete: {len(audio_files)} audio files found")
         return audio_files
     
-    def _analyze_file(self, filepath: Path, skip_hashing: bool = False) -> Optional[AudioFile]:
+    def _analyze_file(self, filepath: Path) -> Optional[AudioFile]:
         """Analyze a single audio file"""
         try:
             stat = filepath.stat()
@@ -81,8 +94,8 @@ class BeatOrganizer:
             created_date = datetime.fromtimestamp(stat.st_mtime)
             modified_date = datetime.fromtimestamp(stat.st_mtime)
             
-            # Skip hashing for basic organization (much faster)
-            file_hash = "" if skip_hashing else self._generate_file_hash(filepath)
+            # Generate file hash for duplicate detection
+            file_hash = self._generate_file_hash(filepath)
             
             # Rough duration estimate
             estimated_duration = self._estimate_duration(filesize, filepath.suffix)
@@ -101,24 +114,150 @@ class BeatOrganizer:
             print(f"Error analyzing {filepath.name}: {e}")
             return None
     
+    def generate_fingerprints_bulk(self, audio_files: List[AudioFile], progress_callback=None) -> Dict[str, str]:
+        """Generate fingerprints for multiple files efficiently"""
+        fingerprints = {}
+        total_files = len(audio_files)
+        
+        for i, audio_file in enumerate(audio_files):
+            if progress_callback:
+                progress_callback(i, total_files, f"Generating fingerprint: {audio_file.filename}")
+            
+            fingerprint = self.audio_analyzer.generate_fingerprint_only(audio_file.filepath)
+            if fingerprint:
+                fingerprints[str(audio_file.filepath)] = fingerprint
+        
+        return fingerprints
+
+    def analyze_audio_metrics(self, filepath: Path) -> Optional[Dict[str, Any]]:
+        """Analyze audio metrics for a single file"""
+        if not self.enable_metrics:
+            return None
+            
+        try:
+            # Check if we already have cached metrics
+            cached_metrics = self.metrics_db.get_metrics(filepath)
+            if cached_metrics:
+                print(f"📊 Using cached metrics for {filepath.name}")
+                return cached_metrics
+            
+            # Perform new analysis
+            print(f"🔍 Analyzing audio metrics for {filepath.name}")
+            metrics = self.audio_analyzer.analyze_file(filepath)
+            
+            if not metrics:
+                return None
+            
+            # Save to cache
+            self.metrics_db.save_metrics(metrics)
+            
+            # Get classification and organization info
+            classification_info = classify_track_by_metrics(metrics)
+            
+            # Convert to dict for JSON serialization with safe field access
+            return {
+                'filepath': str(metrics.filepath),
+                'filename': metrics.filename,
+                'file_size': getattr(metrics, 'file_size', 0),
+                'format': getattr(metrics, 'format', ''),
+                'bit_depth': getattr(metrics, 'bit_depth', None),
+                'sample_rate': getattr(metrics, 'sample_rate', None),
+                'duration': getattr(metrics, 'duration', None),
+                'lufs': getattr(metrics, 'lufs', None),
+                'true_peak': getattr(metrics, 'true_peak', None),
+                'rms_energy': getattr(metrics, 'rms_energy', None),
+                'dynamic_range': getattr(metrics, 'dynamic_range', None),
+                'bpm': getattr(metrics, 'bpm', None),
+                'key': getattr(metrics, 'key', None),
+                'has_clipping': getattr(metrics, 'has_clipping', False),
+                'quality_score': getattr(metrics, 'quality_score', None),
+                'classification': getattr(metrics, 'classification', None),
+                'suggested_folder': classification_info.get('suggested_folder', '06_NEEDS_Analysis'),
+                'action': classification_info.get('action', 'Analyze manually'),
+                'issues': classification_info.get('issues', []),
+                'recommendations': classification_info.get('recommendations', [])
+            }
+            
+        except Exception as e:
+            print(f"❌ Audio metrics analysis failed for {filepath.name}: {e}")
+            return None
+    
+    def get_collection_metrics_report(self) -> Dict:
+        """Get comprehensive metrics report for the entire collection"""
+        if not self.enable_metrics:
+            return {'error': 'Audio metrics not enabled'}
+        
+        return self.metrics_db.get_collection_stats()
+    
+    def organize_by_metrics(self, audio_files: List[AudioFile], output_dir: Path) -> Dict:
+        """Organize files based on audio metrics analysis"""
+        if not self.enable_metrics:
+            return {'error': 'Audio metrics not enabled'}
+        
+        organization_results = {
+            'organized_files': {},
+            'failed_files': [],
+            'summary': {}
+        }
+        
+        print(f"🎯 Organizing {len(audio_files)} files by audio metrics...")
+        
+        for i, audio_file in enumerate(audio_files):
+            print(f"📁 Processing {i+1}/{len(audio_files)}: {audio_file.filename}")
+            
+            try:
+                # Get or analyze metrics
+                metrics_data = self.analyze_audio_metrics(audio_file.filepath)
+                if not metrics_data:
+                    organization_results['failed_files'].append(str(audio_file.filepath))
+                    continue
+                
+                # Determine target folder
+                suggested_folder = metrics_data.get('suggested_folder', '06_NEEDS_Analysis')
+                target_dir = output_dir / suggested_folder
+                target_dir.mkdir(parents=True, exist_ok=True)
+                
+                # Generate target filepath
+                target_path = target_dir / audio_file.filename
+                
+                # Handle name conflicts
+                counter = 1
+                original_target = target_path
+                while target_path.exists():
+                    name_parts = original_target.stem, counter, original_target.suffix
+                    target_path = original_target.parent / f"{name_parts[0]}_{name_parts[1]}{name_parts[2]}"
+                    counter += 1
+                
+                # Record the organization decision
+                classification = metrics_data.get('classification', 'UNKNOWN')
+                if classification not in organization_results['organized_files']:
+                    organization_results['organized_files'][classification] = []
+                
+                organization_results['organized_files'][classification].append({
+                    'source': str(audio_file.filepath),
+                    'target': str(target_path),
+                    'metrics': metrics_data
+                })
+                
+            except Exception as e:
+                print(f"❌ Failed to process {audio_file.filename}: {e}")
+                organization_results['failed_files'].append(str(audio_file.filepath))
+        
+        # Generate summary
+        organization_results['summary'] = self.get_collection_metrics_report()
+        
+        return organization_results
+    
     def _generate_file_hash(self, filepath: Path) -> str:
         """Generate hash of file contents"""
-        # Use fast Cython version if available
-        if self.has_fast_hash:
-            try:
-                import fast_hash
-                return fast_hash.fast_file_hash(str(filepath))
-            except:
-                pass
-        
-        # Fallback to regular Python
         try:
             hash_md5 = hashlib.md5()
             with open(filepath, 'rb') as f:
                 for chunk in iter(lambda: f.read(65536), b""):  # 64KB chunks
                     hash_md5.update(chunk)
             return hash_md5.hexdigest()
-        except:
+        except Exception as e:
+            print(f"Hash generation failed for {filepath.name}: {e}")
             return ""
     
     def _estimate_duration(self, filesize: int, format_ext: str) -> Optional[float]:
@@ -133,8 +272,8 @@ class BeatOrganizer:
         except:
             return None
     
-    def find_duplicates(self, audio_files: List[AudioFile]) -> Dict[str, List[AudioFile]]:
-        """Find exact duplicate files (same hash)"""
+    def _find_duplicates_original(self, audio_files: List[AudioFile]) -> Dict[str, List[AudioFile]]:
+        """Find exact duplicate files (same hash) - original implementation"""
         hash_groups = defaultdict(list)
         
         for file in audio_files:
@@ -261,7 +400,7 @@ class BeatOrganizer:
         version_families = {}
         
         if detect_duplicates and any(f.file_hash for f in audio_files):
-            duplicates = self.find_duplicates(audio_files)
+            duplicates = self._find_duplicates_original(audio_files)
             version_families = self.find_version_families(audio_files)
         else:
             print("Skipping duplicate detection (no hashes or not requested)")
@@ -400,7 +539,149 @@ class BeatOrganizer:
             print(f"Check: {output_dir}")
         else:
             print(f"\nTo actually move files, run again with --execute")
-
+    
+    def get_collection_stats(self, directory: str) -> Dict:
+        """Get basic statistics for a collection of audio files"""
+        try:
+            path = Path(directory)
+            if not path.exists():
+                return {'error': 'Directory does not exist'}
+            
+            # Scan the directory for files
+            audio_files = self.scan_directory(path)
+            
+            if not audio_files:
+                return {
+                    'total_files': 0,
+                    'total_size': 0,
+                    'formats': {},
+                    'oldest_file': None,
+                    'newest_file': None
+                }
+            
+            # Calculate basic statistics
+            total_size = sum(f.filesize for f in audio_files)
+            formats = {}
+            oldest_date = None
+            newest_date = None
+            oldest_file = None
+            newest_file = None
+            
+            for audio_file in audio_files:
+                # Format counts
+                ext = audio_file.format.lower()
+                formats[ext] = formats.get(ext, 0) + 1
+                
+                # Date tracking
+                if audio_file.modified_date:
+                    if oldest_date is None or audio_file.modified_date < oldest_date:
+                        oldest_date = audio_file.modified_date
+                        oldest_file = audio_file.filename
+                    if newest_date is None or audio_file.modified_date > newest_date:
+                        newest_date = audio_file.modified_date
+                        newest_file = audio_file.filename
+            
+            return {
+                'total_files': len(audio_files),
+                'total_size': total_size,
+                'formats': formats,
+                'oldest_file': oldest_file,
+                'newest_file': newest_file,
+                'oldest_date': oldest_date.isoformat() if oldest_date else None,
+                'newest_date': newest_date.isoformat() if newest_date else None
+            }
+            
+        except Exception as e:
+            return {'error': f'Failed to get collection stats: {str(e)}'}
+    
+    def find_duplicates(self, path_or_files) -> Dict[str, List[AudioFile]]:
+        """Find duplicate files from a directory path or list of AudioFile objects"""
+        try:
+            if isinstance(path_or_files, str):
+                # String path provided - scan directory first
+                path = Path(path_or_files)
+                if not path.exists():
+                    return {}
+                audio_files = self.scan_directory(path)
+            elif isinstance(path_or_files, Path):
+                # Path object provided - scan directory first
+                if not path_or_files.exists():
+                    return {}
+                audio_files = self.scan_directory(path_or_files)
+            else:
+                # List of AudioFile objects provided
+                audio_files = path_or_files
+            
+            return self._find_duplicates_from_files(audio_files)
+            
+        except Exception as e:
+            print(f"Error finding duplicates: {e}")
+            return {}
+    
+    def _find_duplicates_from_files(self, audio_files: List[AudioFile], fingerprints: Dict[str, str] = None) -> Dict[str, List[AudioFile]]:
+        """Find duplicate files using audio fingerprints (when available) or fallback to file hashes"""
+        if not self.enable_metrics:
+            # Fallback to file hash-based duplicate detection
+            duplicates = defaultdict(list)
+            for audio_file in audio_files:
+                duplicates[audio_file.file_hash].append(audio_file)
+            return {k: v for k, v in duplicates.items() if len(v) > 1}
+        
+        # Use audio fingerprint-based duplicate detection
+        print("🔍 Analyzing audio fingerprints for duplicate detection...")
+        metrics_list = []
+        
+        # Use provided fingerprints or check cache
+        for audio_file in audio_files:
+            fingerprint = None
+            file_path_str = str(audio_file.filepath)
+            
+            # Try provided fingerprints first
+            if fingerprints and file_path_str in fingerprints:
+                fingerprint = fingerprints[file_path_str]
+            else:
+                # Check if files already have cached fingerprints in database
+                cached_metrics = self.metrics_db.get_metrics(audio_file.filepath)
+                if cached_metrics and cached_metrics.get('audio_fingerprint'):
+                    fingerprint = cached_metrics['audio_fingerprint']
+            
+            if fingerprint:
+                audio_metrics = AudioMetrics(
+                    filepath=audio_file.filepath,
+                    filename=audio_file.filename,
+                    file_size=audio_file.filesize,
+                    format=audio_file.format,
+                    audio_fingerprint=fingerprint
+                )
+                metrics_list.append(audio_metrics)
+        
+        if not metrics_list:
+            print("⚠️ No audio fingerprints available, falling back to file hash detection")
+            # Fallback to file hash method
+            duplicates = defaultdict(list)
+            for audio_file in audio_files:
+                duplicates[audio_file.file_hash].append(audio_file)
+            return {k: v for k, v in duplicates.items() if len(v) > 1}
+        
+        # Find audio fingerprint duplicates (100% matches only)
+        fingerprint_duplicates = self.audio_analyzer.find_audio_duplicates(metrics_list, threshold=99.0)
+        
+        # Convert back to AudioFile format for compatibility
+        converted_duplicates = {}
+        for key, metrics_group in fingerprint_duplicates.items():
+            audio_file_group = []
+            for metrics in metrics_group:
+                # Find corresponding AudioFile
+                for audio_file in audio_files:
+                    if audio_file.filepath == metrics.filepath:
+                        audio_file_group.append(audio_file)
+                        break
+            if len(audio_file_group) > 1:
+                converted_duplicates[key] = audio_file_group
+        
+        print(f"🎯 Found {len(converted_duplicates)} audio fingerprint duplicate groups")
+        return converted_duplicates
+    
 def main():
     """Main CLI interface"""
     parser = argparse.ArgumentParser(
@@ -412,7 +693,7 @@ Examples:
   %(prog)s duplicates "C:/Music/Beats" 
   %(prog)s stats "C:/Music/Beats"
   %(prog)s organize "C:/Users/username/Desktop" --output "C:/Users/username/Music"
-  %(prog)s organize "C:/Users/username/Desktop" --execute --fast
+  %(prog)s organize "C:/Users/username/Desktop" --execute
         """
     )
     
@@ -422,8 +703,6 @@ Examples:
     parser.add_argument('--output', help='Output directory for organization (default: current user Music folder)')
     parser.add_argument('--execute', action='store_true',
                        help='Actually move files (default is dry-run)')
-    parser.add_argument('--fast', action='store_true',
-                       help='Fast mode: skip duplicate detection for faster organization')
     parser.add_argument('--no-recursive', action='store_true',
                        help='Do not scan subdirectories')
     
@@ -446,16 +725,11 @@ Examples:
         print(f"Beat File Organizer")
         print(f"Command: {args.command}")
         print(f"Path: {path}")
-        if args.fast:
-            print("Mode: FAST (skipping duplicate detection)")
-        if organizer.has_fast_hash:
-            print("Optimization: Cython fast hashing available")
         print(f"{'='*50}")
         
         # Scan files
         recursive = not args.no_recursive
-        skip_hashing = args.fast and args.command == 'organize'
-        audio_files = organizer.scan_directory(path, recursive, skip_hashing)
+        audio_files = organizer.scan_directory(path, recursive)
         
         if not audio_files:
             print("No audio files found!")
@@ -466,10 +740,6 @@ Examples:
             organizer.show_statistics(audio_files)
         
         elif args.command == 'duplicates':
-            if skip_hashing:
-                print("Cannot detect duplicates in fast mode (no hashing)")
-                return 1
-                
             print(f"\nAnalyzing duplicates...")
             
             # Find exact duplicates
@@ -536,8 +806,7 @@ Examples:
             
             # Organize files
             dry_run = not args.execute
-            detect_duplicates = not args.fast
-            organizer.organize_files(audio_files, output_dir, dry_run, detect_duplicates)
+            organizer.organize_files(audio_files, output_dir, dry_run, detect_duplicates=True)
         
         return 0
         
