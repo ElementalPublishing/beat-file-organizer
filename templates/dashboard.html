@@ -14,14 +14,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Styles -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
     <!-- Header -->
     <header class="header">
         <div class="header-content">
             <div class="logo-section">
-                <img src="{{ url_for('static', filename='assets/logo.png') }}" alt="Elemental Publishing" class="logo">
+                <img src="/static/assets/logo.png" alt="Elemental Publishing" class="logo">
                 <div class="brand-text">
                     <h1 class="brand-title">Beat File Organizer</h1>
                     <p class="brand-subtitle">"Something Different" - Professional Music Tools</p>
@@ -65,7 +65,7 @@
                     type="text" 
                     id="directoryPath" 
                     class="input-field" 
-                    placeholder="C:\Users\YourName\Music\Beats (53 tracks, thousands of plays, international fans calling them 'masterpieces' = $5.53 total)"
+                    placeholder="C:\Users\YourName\Music\Beats"
                     value=""
                 >
                 <button id="browseBtn" class="btn btn-secondary">
@@ -88,12 +88,12 @@
                 </p>
                 <div style="text-align: center; margin-top: 0.5rem;">
                     <small style="color: rgba(245, 245, 245, 0.6);">
-                        📂 Phase 1: Finding files → 🔍 Phase 2: Generating hashes → 🔄 Phase 3: Finding duplicates
+                        📁 Phase 1: Discovery → 🔑 Phase 2: Fingerprints → 🔍 Phase 3: Duplicates → 🌊 Phase 4: Waveforms → ⚖️ Phase 5: Analysis → ✅ Phase 6: Organization
                     </small>
                 </div>
                 <div style="text-align: center; margin-top: 1rem;">
-                    <button id="cancelScanBtn" class="btn btn-secondary">
-                        <i class="fas fa-times"></i>
+                    <button id="cancelScanBtn" class="btn btn-outline-danger btn-sm">
+                        <i class="fas fa-stop"></i>
                         Cancel Scan
                     </button>
                 </div>
@@ -105,70 +105,32 @@
             <div class="card-header">
                 <h2 class="card-title">
                     <i class="fas fa-chart-bar card-icon"></i>
-                    Collection Analytics
+                    Collection Overview
                 </h2>
-                <button id="analyzeAllBtn" class="btn btn-primary">
-                    <i class="fas fa-microscope"></i>
-                    Deep Analysis
-                </button>
             </div>
-
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-value" id="totalFiles">0</div>
-                    <div class="stat-label">Audio Files</div>
+                    <div class="stat-number" id="totalFiles">0</div>
+                    <div class="stat-label">Total Files</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="totalSize">0 MB</div>
+                    <div class="stat-number" id="totalSize">0 MB</div>
                     <div class="stat-label">Total Size</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="duplicateCount">0</div>
-                    <div class="stat-label">Duplicates Found</div>
+                    <div class="stat-number" id="duplicateCount">0</div>
+                    <div class="stat-label">Duplicates</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="wastedSpace">0 MB</div>
+                    <div class="stat-number" id="wastedSpace">0 MB</div>
                     <div class="stat-label">Wasted Space</div>
                 </div>
             </div>
-        </div>
-
-        <!-- Quality Analysis -->
-        <div id="qualityAnalysis" class="card hidden">
-            <div class="card-header">
-                <h2 class="card-title">
-                    <i class="fas fa-star card-icon"></i>
-                    Professional Quality Analysis
-                </h2>
-                <div>
-                    <button id="exportReportBtn" class="btn btn-secondary">
-                        <i class="fas fa-download"></i>
-                        Export Report
-                    </button>
-                </div>
-            </div>
-
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value streaming-ready" id="streamingReady">0</div>
-                    <div class="stat-label">Streaming Ready</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value clipped" id="clippedFiles">0</div>
-                    <div class="stat-label">Clipped (URGENT)</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value loud" id="loudFiles">0</div>
-                    <div class="stat-label">Too Loud</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value quiet" id="quietFiles">0</div>
-                    <div class="stat-label">Need Mastering</div>
-                </div>
-            </div>
-
-            <div id="qualityRecommendations" class="mt-2">
-                <!-- Dynamic recommendations will be inserted here -->
+            <div style="text-align: center; margin-top: 2rem;">
+                <button id="analyzeAllBtn" class="btn btn-accent">
+                    <i class="fas fa-microscope"></i>
+                    Deep Analysis
+                </button>
             </div>
         </div>
 
@@ -176,27 +138,26 @@
         <div id="fileBrowser" class="card hidden">
             <div class="card-header">
                 <h2 class="card-title">
-                    <i class="fas fa-music card-icon"></i>
-                    Your Beats Collection
+                    <i class="fas fa-list card-icon"></i>
+                    File Browser
                 </h2>
-                <div class="flex items-center gap-1">
-                    <button id="sortByName" class="btn btn-secondary">
+                <div class="card-actions">
+                    <button id="sortByName" class="btn btn-outline-secondary btn-sm">
                         <i class="fas fa-sort-alpha-down"></i>
                         Name
                     </button>
-                    <button id="sortBySize" class="btn btn-secondary">
-                        <i class="fas fa-sort-numeric-down"></i>
+                    <button id="sortBySize" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-sort-amount-down"></i>
                         Size
                     </button>
-                    <button id="sortByQuality" class="btn btn-secondary">
+                    <button id="sortByQuality" class="btn btn-outline-secondary btn-sm">
                         <i class="fas fa-star"></i>
                         Quality
                     </button>
                 </div>
             </div>
-
-            <div class="file-list" id="fileList">
-                <!-- Dynamic file list will be inserted here -->
+            <div id="fileList" class="file-list">
+                <!-- Files will be populated here -->
             </div>
         </div>
 
@@ -205,77 +166,59 @@
             <div class="card-header">
                 <h2 class="card-title">
                     <i class="fas fa-copy card-icon"></i>
-                    Duplicate File Manager
+                    Duplicate Manager
                 </h2>
-                <button id="autoResolveDuplicates" class="btn btn-warning">
-                    <i class="fas fa-magic"></i>
-                    Smart Cleanup
-                </button>
+                <div class="card-actions">
+                    <button id="autoResolveDuplicates" class="btn btn-outline-warning btn-sm">
+                        <i class="fas fa-magic"></i>
+                        Auto-resolve
+                    </button>
+                </div>
             </div>
-
-            <div id="duplicateGroups">
-                <!-- Dynamic duplicate groups will be inserted here -->
+            <div id="duplicateGroups" class="duplicate-groups">
+                <!-- Duplicate groups will be populated here -->
             </div>
         </div>
 
-        <!-- Audio Analyzer -->
-        <div id="audioAnalyzer" class="card hidden">
-            <div class="card-header">
-                <h2 class="card-title">
-                    <i class="fas fa-waveform-lines card-icon"></i>
-                    Professional Audio Analysis
-                </h2>
-                <button id="closeAnalyzer" class="btn btn-secondary">
-                    <i class="fas fa-times"></i>
-                    Close
-                </button>
-            </div>
-
-            <div id="analyzerContent">
-                <div class="flex items-center justify-between mb-2">
-                    <h3 id="analyzingFileName">No file selected</h3>
-                    <div id="analyzerQualityBadge"></div>
-                </div>
-
-                <div class="waveform-container">
-                    <div class="waveform" id="waveformDisplay">
-                        <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: rgba(245, 245, 245, 0.5);">
-                            <i class="fas fa-waveform-lines" style="font-size: 2rem; margin-right: 1rem;"></i>
-                            Click "Analyze File" to see waveform
-                        </div>
-                    </div>
-                </div>
-
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-value" id="lufsValue">--</div>
-                        <div class="stat-label">LUFS Loudness</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="truePeakValue">--</div>
-                        <div class="stat-label">True Peak</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="dynamicRangeValue">--</div>
-                        <div class="stat-label">Dynamic Range</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="qualityScoreValue">--</div>
-                        <div class="stat-label">Quality Score</div>
-                    </div>
-                </div>
-
-                <div id="analysisRecommendations" class="mt-2">
-                    <!-- Dynamic recommendations will be inserted here -->
-                </div>
-            </div>
-        </div>
-
-        <!-- War Progress -->
-        <div class="card fade-in">
+        <!-- Quality Analysis -->
+        <div id="qualityAnalysis" class="card hidden">
             <div class="card-header">
                 <h2 class="card-title">
                     <i class="fas fa-chart-line card-icon"></i>
+                    Quality Analysis
+                </h2>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card quality-streaming">
+                    <div class="stat-number" id="streamingReady">0</div>
+                    <div class="stat-label">Streaming Ready</div>
+                </div>
+                <div class="stat-card quality-clipped">
+                    <div class="stat-number" id="clippedFiles">0</div>
+                    <div class="stat-label">Clipped Files</div>
+                </div>
+                <div class="stat-card quality-loud">
+                    <div class="stat-number" id="loudFiles">0</div>
+                    <div class="stat-label">Too Loud</div>
+                </div>
+                <div class="stat-card quality-quiet">
+                    <div class="stat-number" id="quietFiles">0</div>
+                    <div class="stat-label">Too Quiet</div>
+                </div>
+            </div>
+            <div class="recommendations">
+                <h3>Recommendations</h3>
+                <div id="qualityRecommendations">
+                    <!-- Quality recommendations will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Artist Liberation Progress -->
+        <div class="card liberation-progress">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-fist-raised card-icon"></i>
                     Artist Liberation Progress
                 </h2>
             </div>
@@ -309,7 +252,66 @@
         </div>
     </div>
 
+    <!-- Audio Analyzer Modal -->
+    <div id="audioAnalyzer" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <i class="fas fa-waveform-lines"></i>
+                    Audio Analysis
+                </h2>
+                <button id="closeAnalyzer" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-times"></i>
+                    Close
+                </button>
+            </div>
+            
+            <div class="analyzer-content">
+                <div class="analyzer-header">
+                    <h3 id="analyzingFileName">Loading...</h3>
+                    <div id="analyzerQualityBadge"></div>
+                </div>
+                
+                <div class="waveform-section">
+                    <h4>Waveform</h4>
+                    <div id="waveformDisplay" class="waveform-display">
+                        <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: rgba(245, 245, 245, 0.5);">
+                            <span class="spinner" style="margin-right: 1rem;"></span>
+                            Generating waveform...
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div class="metric-label">LUFS</div>
+                        <div class="metric-value" id="lufsValue">--</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">True Peak</div>
+                        <div class="metric-value" id="truePeakValue">--</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Dynamic Range</div>
+                        <div class="metric-value" id="dynamicRangeValue">--</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Quality Score</div>
+                        <div class="metric-value" id="qualityScoreValue">--</div>
+                    </div>
+                </div>
+                
+                <div class="recommendations">
+                    <h4>Recommendations</h4>
+                    <div id="analysisRecommendations">
+                        <!-- Analysis recommendations will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
-    <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+    <script src="/static/dashboard_v2.js"></script>
 </body>
 </html>
